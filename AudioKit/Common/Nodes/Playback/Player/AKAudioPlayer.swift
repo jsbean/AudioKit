@@ -153,7 +153,7 @@ public class AKAudioPlayer: AKNode, AKToggleable {
         if internalPlayer.playing {
             if let nodeTime = internalPlayer.lastRenderTime,
                 let playerTime = internalPlayer.playerTimeForNodeTime(nodeTime) {
-                return Double( Double( playerTime.sampleTime ) / playerTime.sampleRate ) + skippedToTime
+                return Double(playerTime.sampleTime) / playerTime.sampleRate + skippedToTime
             }
         }
         
