@@ -26,7 +26,7 @@ public class AKAudioPlayer: AKNode, AKToggleable {
     public var looping = false
     private var paused = false
     
-    /// Total duration of one loop through of the file
+    /// Total duration of one loop through the file
     public var duration: Double {
         return Double(totalFrameCount) / Double(sampleRate)
     }
