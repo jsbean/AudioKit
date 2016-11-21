@@ -249,8 +249,16 @@ open class AKAudioPlayer: AKNode, AKToggleable {
     /// Start playback
     open func start() {
         
+        print("start audio file")
+        
         if !playing {
+            
+            print("not currently playing")
+            
             if audioFileBuffer != nil {
+                
+                print("buffer not nil")
+                
                 // schedule it at some point in the future / or immediately if 0
                 scheduleBuffer( secondsToAVAudioTime(scheduledTime) )
                 
