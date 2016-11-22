@@ -265,15 +265,7 @@ open class AKAudioPlayer: AKNode, AKToggleable {
                 playing = true
                 paused = false
                 
-                DispatchQueue.global(qos: .background).async {
-                    
-                    self.internalPlayer.play()
-                    
-                    DispatchQueue.main.async {
-                        
-                        print("after internalPlayer.play() on background thread: \(DispatchTime.now().uptimeNanoseconds)")
-                    }
-                }
+                self.internalPlayer.play()
                 
             } else {
                 print("AKAudioPlayer Warning: cannot play an empty buffer!...")
