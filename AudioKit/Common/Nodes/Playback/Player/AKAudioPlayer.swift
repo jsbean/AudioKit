@@ -257,7 +257,7 @@ open class AKAudioPlayer: AKNode, AKToggleable {
             
             if audioFileBuffer != nil {
                 
-                print("buffer not nil")
+                print("before schedule buffer: \(DispatchTime.now().uptimeNanoseconds)")
                 
                 // schedule it at some point in the future / or immediately if 0
                 scheduleBuffer( secondsToAVAudioTime(scheduledTime) )
@@ -265,6 +265,8 @@ open class AKAudioPlayer: AKNode, AKToggleable {
                 playing = true
                 paused = false
                 internalPlayer.play()
+                
+                print("after internalPlayer.play(): \(DispatchTime.now().uptimeNanoseconds)")
                 
             } else {
                 print("AKAudioPlayer Warning: cannot play an empty buffer!...")
