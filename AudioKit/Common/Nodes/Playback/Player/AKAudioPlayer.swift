@@ -257,15 +257,17 @@ open class AKAudioPlayer: AKNode, AKToggleable {
             
             if audioFileBuffer != nil {
                 
-                print("before schedule buffer: \(DispatchTime.now().uptimeNanoseconds)")
+                
                 
                 // schedule it at some point in the future / or immediately if 0
-                scheduleBuffer( secondsToAVAudioTime(scheduledTime) )
+                //scheduleBuffer( secondsToAVAudioTime(scheduledTime) )
                 
                 playing = true
                 paused = false
                 
                 self.internalPlayer.play()
+                
+                print("after schedule buffer: \(DispatchTime.now().uptimeNanoseconds)")
                 
             } else {
                 print("AKAudioPlayer Warning: cannot play an empty buffer!...")
@@ -394,7 +396,7 @@ open class AKAudioPlayer: AKNode, AKToggleable {
             
             // Setting this here doesn't make sense to me, if you pre-schedule the
             // buffer it's not possible to schedule it in the future
-            //scheduleBuffer()
+            scheduleBuffer()
             
         } else {
             print("AKAudioPlayer Warning:  \"\(internalAudioFile.fileNamePlusExtension)\" is an empty file")
