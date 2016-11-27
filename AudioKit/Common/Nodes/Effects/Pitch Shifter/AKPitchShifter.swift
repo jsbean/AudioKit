@@ -16,11 +16,14 @@ import AVFoundation
 ///   - windowSize: Window size (in samples)
 ///   - crossfade: Crossfade (in samples)
 ///
-open class AKPitchShifter: AKNode, AKToggleable {
+open class AKPitchShifter: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKPitchShifterAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "pshf")
+
 
     // MARK: - Properties
 
-    internal var internalAU: AKPitchShifterAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var shiftParameter: AUParameter?
@@ -99,27 +102,16 @@ open class AKPitchShifter: AKNode, AKToggleable {
         self.windowSize = windowSize
         self.crossfade = crossfade
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("pshf")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKPitchShifterAudioUnit.self,
-            as: description,
-            name: "Local AKPitchShifter",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKPitchShifterAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -127,9 +119,9 @@ open class AKPitchShifter: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        shiftParameter      = tree.value(forKey: "shift")      as? AUParameter
-        windowSizeParameter = tree.value(forKey: "windowSize") as? AUParameter
-        crossfadeParameter  = tree.value(forKey: "crossfade")  as? AUParameter
+        shiftParameter      = tree["shift"]
+        windowSizeParameter = tree["windowSize"]
+        crossfadeParameter  = tree["crossfade"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

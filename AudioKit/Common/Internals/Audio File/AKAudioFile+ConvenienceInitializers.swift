@@ -19,10 +19,9 @@ extension AKAudioFile {
     /// - returns: An initialized AKAudioFile for reading, or nil if init failed
     ///
     public convenience init(readFileName name: String,
-                                         baseDir: BaseDirectory = .resources) throws {
+                            baseDir: BaseDirectory = .resources) throws {
         
         let filePath: String
-        let fileNameWithExtension = name
         
         switch baseDir {
         case .temp:
@@ -39,6 +38,9 @@ extension AKAudioFile {
                 throw NSError(domain: NSURLErrorDomain, code: NSURLErrorFileDoesNotExist, userInfo: nil)
             }
             filePath = path!
+        case .custom:
+            print( "ERROR AKAudioFile: custom creation directory not implemented yet")
+            throw NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotCreateFile, userInfo: nil)
             
         }
         let fileUrl = URL(fileURLWithPath: filePath)
@@ -79,8 +81,8 @@ extension AKAudioFile {
     ///   - interleaved: Bool (Whether to use an interleaved processing format.)
     ///
     public convenience init(writeIn baseDir: BaseDirectory = .temp,
-                                    name: String = "",
-                                    settings: [String : Any] = AKSettings.audioFormat.settings)
+                            name: String = "",
+                            settings: [String : Any] = AKSettings.audioFormat.settings)
         throws {
             
             let fileNameWithExtension: String
@@ -101,6 +103,9 @@ extension AKAudioFile {
 
                 print( "ERROR AKAudioFile: cannot create a file in applications resources")
                 throw NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotCreateFile, userInfo: nil)
+            case .custom:
+                print( "ERROR AKAudioFile: custom creation directory not implemented yet")
+                throw NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotCreateFile, userInfo: nil)
             }
             
             let nsurl = URL(string: filePath)
@@ -113,7 +118,7 @@ extension AKAudioFile {
             let directoryPath = nsurl!.deletingLastPathComponent()
             
             let fileManager = FileManager.default
-            if fileManager.fileExists(atPath: (directoryPath.absoluteString)) == false {
+            if !fileManager.fileExists(atPath: (directoryPath.absoluteString)) {
                 print( "ERROR AKAudioFile: directory \"\(directoryPath)\" doesn't exist")
                 throw NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotCreateFile, userInfo: nil)
             }
@@ -121,7 +126,7 @@ extension AKAudioFile {
             // AVLinearPCMIsNonInterleaved cannot be set to false (ignored but throw a warning)
             var  fixedSettings =  settings
             
-            fixedSettings[ AVLinearPCMIsNonInterleaved] =  NSNumber(value: false as Bool)
+            fixedSettings[AVLinearPCMIsNonInterleaved] = NSNumber(value: false)
             
             do {
                 try self.init(forWriting: nsurl!, settings: fixedSettings)
@@ -147,8 +152,8 @@ extension AKAudioFile {
     /// - Returns: a .caf AKAudioFile set to AudioKit settings (32 bits float @ 44100 Hz)
     ///
     public convenience init(createFileFromFloats floatsArrays: [[Float]],
-                                                 baseDir: BaseDirectory = .temp,
-                                                 name: String = "") throws {
+                            baseDir: BaseDirectory = .temp,
+                            name: String = "") throws {
         
         let channelCount = floatsArrays.count
         var fixedSettings = AKSettings.audioFormat.settings
@@ -197,8 +202,8 @@ extension AKAudioFile {
     /// - Returns: a .caf AKAudioFile set to AudioKit settings (32 bits float @ 44100 Hz)
     ///
     public convenience init(fromAVAudioPCMBuffer buffer: AVAudioPCMBuffer,
-                                                 baseDir: BaseDirectory = .temp,
-                                                 name: String = "") throws {
+                            baseDir: BaseDirectory = .temp,
+                            name: String = "") throws {
         
         try self.init(writeIn: baseDir,
                       name: name)

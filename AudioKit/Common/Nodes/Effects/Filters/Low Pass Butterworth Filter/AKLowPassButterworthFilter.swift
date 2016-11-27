@@ -15,11 +15,13 @@ import AVFoundation
 ///   - input: Input node to process
 ///   - cutoffFrequency: Cutoff frequency. (in Hertz)
 ///
-open class AKLowPassButterworthFilter: AKNode, AKToggleable {
+open class AKLowPassButterworthFilter: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKLowPassButterworthFilterAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "btlp")
 
     // MARK: - Properties
 
-    internal var internalAU: AKLowPassButterworthFilterAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var cutoffFrequencyParameter: AUParameter?
@@ -66,27 +68,16 @@ open class AKLowPassButterworthFilter: AKNode, AKToggleable {
 
         self.cutoffFrequency = cutoffFrequency
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("btlp")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKLowPassButterworthFilterAudioUnit.self,
-            as: description,
-            name: "Local AKLowPassButterworthFilter",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKLowPassButterworthFilterAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -94,7 +85,7 @@ open class AKLowPassButterworthFilter: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        cutoffFrequencyParameter = tree.value(forKey: "cutoffFrequency") as? AUParameter
+        cutoffFrequencyParameter = tree["cutoffFrequency"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

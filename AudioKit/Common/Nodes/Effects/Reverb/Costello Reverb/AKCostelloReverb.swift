@@ -17,11 +17,13 @@ import AVFoundation
 ///   - feedback: Feedback level in the range 0 to 1. 0.6 gives a good small 'live' room sound, 0.8 a small hall, and 0.9 a large hall. A setting of exactly 1 means infinite length, while higher values will make the opcode unstable.
 ///   - cutoffFrequency: Low-pass cutoff frequency.
 ///
-open class AKCostelloReverb: AKNode, AKToggleable {
+open class AKCostelloReverb: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKCostelloReverbAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "rvsc")
 
     // MARK: - Properties
 
-    internal var internalAU: AKCostelloReverbAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var feedbackParameter: AUParameter?
@@ -84,27 +86,16 @@ open class AKCostelloReverb: AKNode, AKToggleable {
         self.feedback = feedback
         self.cutoffFrequency = cutoffFrequency
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("rvsc")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKCostelloReverbAudioUnit.self,
-            as: description,
-            name: "Local AKCostelloReverb",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKCostelloReverbAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -112,8 +103,8 @@ open class AKCostelloReverb: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        feedbackParameter        = tree.value(forKey: "feedback")        as? AUParameter
-        cutoffFrequencyParameter = tree.value(forKey: "cutoffFrequency") as? AUParameter
+        feedbackParameter        = tree["feedback"]
+        cutoffFrequencyParameter = tree["cutoffFrequency"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

@@ -11,6 +11,12 @@ import AVFoundation
 
 public typealias AKCallback = (Void) -> Void
 
+extension AVAudioEngine {
+    open func connect(_ node1: AVAudioNode, to node2: AVAudioNode) {
+        connect(node1, to: node2, format: AudioKit.format)
+    }
+}
+
 /// Top level AudioKit managing class
 @objc open class AudioKit: NSObject {
 
@@ -29,9 +35,7 @@ public typealias AKCallback = (Void) -> Void
     /// An audio output operation that most applications will need to use last
     open static var output: AKNode? {
         didSet {
-            engine.connect(output!.avAudioNode,
-                           to: engine.outputNode,
-                           format: AudioKit.format)
+            engine.connect(output!.avAudioNode, to: engine.outputNode)
         }
     }
     
@@ -132,7 +136,7 @@ public typealias AKCallback = (Void) -> Void
 
                 NotificationCenter.default.addObserver(
                     self,
-                    selector: #selector(AudioKit.restartEngineAfterRouteChange(_:)),
+                    selector: #selector(restartEngineAfterRouteChange),
                     name: NSNotification.Name.AVAudioSessionRouteChange,
                     object: nil)
             #endif
@@ -141,19 +145,21 @@ public typealias AKCallback = (Void) -> Void
 
                 #if os(iOS)
                     if AKSettings.defaultToSpeaker {
-                        try AKSettings.setSession(category: .playAndRecord,                                                           with: .mixWithOthers)
+                        try AKSettings.setSession(category: .playAndRecord,
+                                                  with: .defaultToSpeaker)
 
                         // listen to AVAudioEngineConfigurationChangeNotification
                         // and restart the engine if it is stopped.
                         NotificationCenter.default.addObserver(
                             self,
-                            selector: #selector(AudioKit.audioEngineConfigurationChange(_:)),
+                            selector: #selector(audioEngineConfigurationChange),
                             name: NSNotification.Name.AVAudioEngineConfigurationChange,
                             object: engine)
 
                     } else {
 
-                        try AKSettings.setSession(category: .playAndRecord)
+                        try AKSettings.setSession(category: .playAndRecord,
+                                                  with: .mixWithOthers)
 
                     }
                 #else
@@ -165,7 +171,7 @@ public typealias AKCallback = (Void) -> Void
 
                 } else if AKSettings.playbackWhileMuted {
 
-                try AKSettings.setSession(category: .playback)
+                    try AKSettings.setSession(category: .playback)
 
                 } else {
                     try AKSettings.setSession(category: .ambient)
@@ -246,7 +252,7 @@ public typealias AKCallback = (Void) -> Void
     // and restart the audio engine if it stops and should be playing
     @objc fileprivate static func audioEngineConfigurationChange(_ notification: Notification) -> Void {
 
-        if (shouldBeRunning == true && self.engine.isRunning == false) {
+        if shouldBeRunning && !engine.isRunning {
             do {
                 try self.engine.start()
             } catch {

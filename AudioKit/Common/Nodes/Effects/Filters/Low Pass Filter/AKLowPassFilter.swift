@@ -15,14 +15,9 @@ import AVFoundation
 ///   - cutoffFrequency: Cutoff Frequency (Hz) ranges from 10 to 22050 (Default: 6900)
 ///   - resonance: Resonance (dB) ranges from -20 to 40 (Default: 0)
 ///
-open class AKLowPassFilter: AKNode, AKToggleable {
+open class AKLowPassFilter: AKNode, AKToggleable, AUComponent {
 
-    fileprivate let cd = AudioComponentDescription(
-        componentType: kAudioUnitType_Effect,
-        componentSubType: kAudioUnitSubType_LowPassFilter,
-        componentManufacturer: kAudioUnitManufacturer_Apple,
-        componentFlags: 0,
-        componentFlagsMask: 0)
+    static let ComponentDescription = AudioComponentDescription(appleEffect: kAudioUnitSubType_LowPassFilter)
 
     internal var internalEffect = AVAudioUnitEffect()
     internal var internalAU: AudioUnit? = nil
@@ -32,12 +27,7 @@ open class AKLowPassFilter: AKNode, AKToggleable {
     /// Cutoff Frequency (Hz) ranges from 10 to 22050 (Default: 6900)
     open var cutoffFrequency: Double = 6900 {
         didSet {
-            if cutoffFrequency < 10 {
-                cutoffFrequency = 10
-            }
-            if cutoffFrequency > 22050 {
-                cutoffFrequency = 22050
-            }
+            cutoffFrequency = (10...22050).clamp(cutoffFrequency)
             AudioUnitSetParameter(
                 internalAU!,
                 kLowPassParam_CutoffFrequency,
@@ -49,12 +39,7 @@ open class AKLowPassFilter: AKNode, AKToggleable {
     /// Resonance (dB) ranges from -20 to 40 (Default: 0)
     open var resonance: Double = 0 {
         didSet {
-            if resonance < -20 {
-                resonance = -20
-            }
-            if resonance > 40 {
-                resonance = 40
-            }
+            resonance = (-20...40).clamp(resonance)
             AudioUnitSetParameter(
                 internalAU!,
                 kLowPassParam_Resonance,
@@ -66,12 +51,7 @@ open class AKLowPassFilter: AKNode, AKToggleable {
     /// Dry/Wet Mix (Default 100)
     open var dryWetMix: Double = 100 {
         didSet {
-            if dryWetMix < 0 {
-                dryWetMix = 0
-            }
-            if dryWetMix > 100 {
-                dryWetMix = 100
-            }
+            dryWetMix = (0...100).clamp(dryWetMix)
             inputGain?.volume = 1 - dryWetMix / 100
             effectGain?.volume = dryWetMix / 100
         }
@@ -108,13 +88,13 @@ open class AKLowPassFilter: AKNode, AKToggleable {
             effectGain = AKMixer(input)
             effectGain!.volume = 1
 
-            internalEffect = AVAudioUnitEffect(audioComponentDescription: cd)
+            internalEffect = AVAudioUnitEffect(audioComponentDescription: _Self.ComponentDescription)
             super.init()
 
             AudioKit.engine.attach(internalEffect)
             internalAU = internalEffect.audioUnit
-            AudioKit.engine.connect((effectGain?.avAudioNode)!, to: internalEffect, format: AudioKit.format)
-            AudioKit.engine.connect(internalEffect, to: mixer.avAudioNode, format: AudioKit.format)
+            AudioKit.engine.connect((effectGain?.avAudioNode)!, to: internalEffect)
+            AudioKit.engine.connect(internalEffect, to: mixer.avAudioNode)
             avAudioNode = mixer.avAudioNode
 
             AudioUnitSetParameter(internalAU!, kLowPassParam_CutoffFrequency, kAudioUnitScope_Global, 0, Float(cutoffFrequency), 0)

@@ -18,12 +18,14 @@ import AVFoundation
 ///
 /// - parameter input: Input node to process
 ///
-open class AKChowningReverb: AKNode, AKToggleable {
+open class AKChowningReverb: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKChowningReverbAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "jcrv")
 
     // MARK: - Properties
 
 
-    internal var internalAU: AKChowningReverbAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
 
@@ -40,29 +42,16 @@ open class AKChowningReverb: AKNode, AKToggleable {
     /// - parameter input: Input node to process
     ///
     public init(_ input: AKNode) {
-
-
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("jcrv")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKChowningReverbAudioUnit.self,
-            as: description,
-            name: "Local AKChowningReverb",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKChowningReverbAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)

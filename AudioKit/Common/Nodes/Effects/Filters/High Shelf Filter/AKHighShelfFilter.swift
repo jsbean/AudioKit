@@ -15,14 +15,9 @@ import AVFoundation
 ///   - cutOffFrequency: Cut Off Frequency (Hz) ranges from 10000 to 22050 (Default: 10000)
 ///   - gain: Gain (dB) ranges from -40 to 40 (Default: 0)
 ///
-open class AKHighShelfFilter: AKNode, AKToggleable {
+open class AKHighShelfFilter: AKNode, AKToggleable, AUComponent {
 
-    fileprivate let cd = AudioComponentDescription(
-        componentType: kAudioUnitType_Effect,
-        componentSubType: kAudioUnitSubType_HighShelfFilter,
-        componentManufacturer: kAudioUnitManufacturer_Apple,
-        componentFlags: 0,
-        componentFlagsMask: 0)
+    static let ComponentDescription = AudioComponentDescription(appleEffect: kAudioUnitSubType_HighShelfFilter)
 
     internal var internalEffect = AVAudioUnitEffect()
     internal var internalAU: AudioUnit? = nil
@@ -32,12 +27,7 @@ open class AKHighShelfFilter: AKNode, AKToggleable {
     /// Cut Off Frequency (Hz) ranges from 10000 to 22050 (Default: 10000)
     open var cutoffFrequency: Double = 10000 {
         didSet {
-            if cutoffFrequency < 10000 {
-                cutoffFrequency = 10000
-            }
-            if cutoffFrequency > 22050 {
-                cutoffFrequency = 22050
-            }
+            cutoffFrequency = (10000...22050).clamp(cutoffFrequency)
             AudioUnitSetParameter(
                 internalAU!,
                 kHighShelfParam_CutOffFrequency,
@@ -49,12 +39,7 @@ open class AKHighShelfFilter: AKNode, AKToggleable {
     /// Gain (dB) ranges from -40 to 40 (Default: 0)
     open var gain: Double = 0 {
         didSet {
-            if gain < -40 {
-                gain = -40
-            }
-            if gain > 40 {
-                gain = 40
-            }
+            gain = (-40...40).clamp(gain)
             AudioUnitSetParameter(
                 internalAU!,
                 kHighShelfParam_Gain,
@@ -66,12 +51,7 @@ open class AKHighShelfFilter: AKNode, AKToggleable {
     /// Dry/Wet Mix (Default 100)
     open var dryWetMix: Double = 100 {
         didSet {
-            if dryWetMix < 0 {
-                dryWetMix = 0
-            }
-            if dryWetMix > 100 {
-                dryWetMix = 100
-            }
+            dryWetMix = (0...100).clamp(dryWetMix)
             inputGain?.volume = 1 - dryWetMix / 100
             effectGain?.volume = dryWetMix / 100
         }
@@ -108,13 +88,13 @@ open class AKHighShelfFilter: AKNode, AKToggleable {
             effectGain = AKMixer(input)
             effectGain!.volume = 1
 
-            internalEffect = AVAudioUnitEffect(audioComponentDescription: cd)
+            internalEffect = AVAudioUnitEffect(audioComponentDescription: _Self.ComponentDescription)
             super.init()
 
             AudioKit.engine.attach(internalEffect)
             internalAU = internalEffect.audioUnit
-            AudioKit.engine.connect((effectGain?.avAudioNode)!, to: internalEffect, format: AudioKit.format)
-            AudioKit.engine.connect(internalEffect, to: mixer.avAudioNode, format: AudioKit.format)
+            AudioKit.engine.connect((effectGain?.avAudioNode)!, to: internalEffect)
+            AudioKit.engine.connect(internalEffect, to: mixer.avAudioNode)
             avAudioNode = mixer.avAudioNode
 
             AudioUnitSetParameter(internalAU!, kHighShelfParam_CutOffFrequency, kAudioUnitScope_Global, 0, Float(cutOffFrequency), 0)

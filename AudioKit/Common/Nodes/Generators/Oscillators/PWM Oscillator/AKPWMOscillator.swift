@@ -17,11 +17,13 @@ import AVFoundation
 ///   - detuningOffset: Frequency offset in Hz.
 ///   - detuningMultiplier: Frequency detuning multiplier
 ///
-open class AKPWMOscillator: AKNode, AKToggleable {
+open class AKPWMOscillator: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKPWMOscillatorAudioUnit
+    static let ComponentDescription = AudioComponentDescription(generator: "pwmo")
 
     // MARK: - Properties
 
-    internal var internalAU: AKPWMOscillatorAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var frequencyParameter: AUParameter?
@@ -144,38 +146,27 @@ open class AKPWMOscillator: AKNode, AKToggleable {
         self.detuningOffset = detuningOffset
         self.detuningMultiplier = detuningMultiplier
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Generator
-        description.componentSubType      = fourCC("pwmo")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKPWMOscillatorAudioUnit.self,
-            as: description,
-            name: "Local AKPWMOscillator",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitGenerator = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitGenerator
-            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKPWMOscillatorAudioUnit
+            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
         }
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        frequencyParameter          = tree.value(forKey: "frequency")          as? AUParameter
-        amplitudeParameter          = tree.value(forKey: "amplitude")          as? AUParameter
-        pulseWidthParameter         = tree.value(forKey: "pulseWidth")         as? AUParameter
-        detuningOffsetParameter     = tree.value(forKey: "detuningOffset")     as? AUParameter
-        detuningMultiplierParameter = tree.value(forKey: "detuningMultiplier") as? AUParameter
+        frequencyParameter          = tree["frequency"]
+        amplitudeParameter          = tree["amplitude"]
+        pulseWidthParameter         = tree["pulseWidth"]
+        detuningOffsetParameter     = tree["detuningOffset"]
+        detuningMultiplierParameter = tree["detuningMultiplier"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

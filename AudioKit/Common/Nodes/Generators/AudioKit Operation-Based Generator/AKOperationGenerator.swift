@@ -9,17 +9,20 @@
 import AVFoundation
 
 /// Operation-based generator
-open class AKOperationGenerator: AKNode, AKToggleable {
+open class AKOperationGenerator: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKOperationGeneratorAudioUnit
+    static let ComponentDescription = AudioComponentDescription(generator: "cstg")
 
     // MARK: - Properties
 
-    fileprivate var internalAU: AKOperationGeneratorAudioUnit?
+    fileprivate var internalAU: AKAudioUnitType?
 
     /// Tells whether the node is processing (ie. started, playing, or active)
     open var isStarted: Bool {
         return internalAU!.isPlaying()
     }
     
+    /// Sporth language snippet
     open var sporth: String = "" {
         didSet  {
             self.stop()
@@ -89,27 +92,16 @@ open class AKOperationGenerator: AKNode, AKToggleable {
     ///
     public init(sporth: String) {
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Generator
-        description.componentSubType      = fourCC("cstg")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKOperationGeneratorAudioUnit.self,
-            as: description,
-            name: "Local AKOperationGenerator",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKOperationGeneratorAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
             AudioKit.engine.attach(self.avAudioNode)
             self.internalAU?.setSporth(sporth)
         }

@@ -15,11 +15,13 @@ import AVFoundation
 ///   - input: Input node to process
 ///   - limit: Threshold / limiting value.
 ///
-open class AKClipper: AKNode, AKToggleable {
+open class AKClipper: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKClipperAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "clip")
 
     // MARK: - Properties
 
-    internal var internalAU: AKClipperAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var limitParameter: AUParameter?
@@ -66,27 +68,16 @@ open class AKClipper: AKNode, AKToggleable {
 
         self.limit = limit
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("clip")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKClipperAudioUnit.self,
-            as: description,
-            name: "Local AKClipper",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKClipperAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -94,7 +85,7 @@ open class AKClipper: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        limitParameter = tree.value(forKey: "limit") as? AUParameter
+        limitParameter = tree["limit"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

@@ -17,11 +17,13 @@ import AVFoundation
 ///   - postiveShapeParameter: Shape of the positive part of the signal. A value of 0 gets a flat clip.
 ///   - negativeShapeParameter: Like the positive shape parameter, only for the negative part.
 ///
-open class AKTanhDistortion: AKNode, AKToggleable {
+open class AKTanhDistortion: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKTanhDistortionAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "dist")
 
     // MARK: - Properties
 
-    internal var internalAU: AKTanhDistortionAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var pregainParameter: AUParameter?
@@ -116,27 +118,16 @@ open class AKTanhDistortion: AKNode, AKToggleable {
         self.postiveShapeParameter = postiveShapeParameter
         self.negativeShapeParameter = negativeShapeParameter
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("dist")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKTanhDistortionAudioUnit.self,
-            as: description,
-            name: "Local AKTanhDistortion",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKTanhDistortionAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -144,10 +135,10 @@ open class AKTanhDistortion: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        pregainParameter                = tree.value(forKey: "pregain")                as? AUParameter
-        postgainParameter               = tree.value(forKey: "postgain")               as? AUParameter
-        postiveShapeParameterParameter  = tree.value(forKey: "postiveShapeParameter")  as? AUParameter
-        negativeShapeParameterParameter = tree.value(forKey: "negativeShapeParameter") as? AUParameter
+        pregainParameter                = tree["pregain"]
+        postgainParameter               = tree["postgain"]
+        postiveShapeParameterParameter  = tree["postiveShapeParameter"]
+        negativeShapeParameterParameter = tree["negativeShapeParameter"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

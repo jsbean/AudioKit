@@ -14,11 +14,11 @@ public typealias MIDINoteNumber = Int
 public typealias MIDIVelocity = Int
 public typealias MIDIChannel = Int
 
-extension Collection where Index == Int {
-    /// Return a random element from the array
+extension Collection where IndexDistance == Int {
+    /// Return a random element from the collection
     public func randomElement() -> Iterator.Element {
         let offset = Int(arc4random_uniform(UInt32(count.toIntMax())))
-        return self[startIndex.advanced(by: offset)]
+        return self[index(startIndex, offsetBy: offset)]
     }
 }
 
@@ -159,7 +159,7 @@ extension Int {
     /// - parameter aRef: Reference frequency of A Note (Default: 440Hz)
     ///
     public func frequencyToMIDINote(_ aRef: Double = 440.0) -> Double {
-        return 69 + 12*log2(Double(self)/aRef)
+        return 69 + 12 * log2(Double(self)/aRef)
     }
 }
 
@@ -171,18 +171,65 @@ extension Double {
     /// - parameter aRef: Reference frequency of A Note (Default: 440Hz)
     ///
     public func frequencyToMIDINote(_ aRef: Double = 440.0) -> Double {
-        return 69 + 12*log2(self/aRef)
+        return 69 + 12 * log2(self/aRef)
     }
-
 }
 
-extension Array where Element: ExpressibleByIntegerLiteral {
-    /// Initialize array with zeroes, ~10x faster than append for array of size 4096
-    ///
-    /// - parameter count: Number of elements in the array
-    ///
+extension RangeReplaceableCollection where Iterator.Element: ExpressibleByIntegerLiteral {
+	/// Initialize array with zeroes, ~10x faster than append for array of size 4096
+	///
+	/// - parameter count: Number of elements in the array
+	///
 
     public init(zeroes count: Int) {
-        self = [Element](repeating: 0, count: count)
+        self.init(repeating: 0, count: count)
     }
 }
+
+extension ClosedRange {
+    /// Clamp value to the range
+    ///
+    /// - parameter value: Value to clamp
+    ///
+    public func clamp(_ value: Bound) -> Bound {
+        return min(max(value, lowerBound), upperBound)
+    }
+}
+
+extension Sequence where Iterator.Element: Hashable {
+    internal var unique: [Iterator.Element] {
+        var s: Set<Iterator.Element> = []
+        return filter {
+            s.insert($0).inserted
+        }
+    }
+}
+
+internal func AudioUnitGetParameter(_ unit: AudioUnit, param: AudioUnitParameterID) -> Double {
+    var val: AudioUnitParameterValue = 0
+    AudioUnitGetParameter(unit, param, kAudioUnitScope_Global, 0, &val)
+    return Double(val)
+}
+
+internal func AudioUnitSetParameter(_ unit: AudioUnit, param: AudioUnitParameterID, to value: Double) {
+    AudioUnitSetParameter(unit, param, kAudioUnitScope_Global, 0, AudioUnitParameterValue(value), 0)
+}
+
+internal struct AUWrapper {
+    let au: AudioUnit
+
+    init(au: AudioUnit) {
+        self.au = au
+    }
+
+    subscript (param: AudioUnitParameterID) -> Double {
+        get {
+            return AudioUnitGetParameter(au, param: param)
+        }
+        set {
+            AudioUnitSetParameter(au, param: param, to: newValue)
+        }
+    }
+}
+
+

@@ -20,11 +20,13 @@ import AVFoundation
 ///   - secondResonantFrequency: The second resonant frequency.
 ///   - amplitude: Amplitude.
 ///
-open class AKDrip: AKNode {
+open class AKDrip: AKNode, AKComponent {
+    public typealias AKAudioUnitType = AKDripAudioUnit
+    static let ComponentDescription = AudioComponentDescription(generator: "drip")
 
     // MARK: - Properties
 
-    internal var internalAU: AKDripAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
 
@@ -141,7 +143,6 @@ open class AKDrip: AKNode {
         secondResonantFrequency: Double = 750,
         amplitude: Double = 0.3) {
 
-
         self.intensity = intensity
         self.dampingFactor = dampingFactor
         self.energyReturn = energyReturn
@@ -150,40 +151,29 @@ open class AKDrip: AKNode {
         self.secondResonantFrequency = secondResonantFrequency
         self.amplitude = amplitude
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Generator
-        description.componentSubType      = fourCC("drip")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKDripAudioUnit.self,
-            as: description,
-            name: "Local AKDrip",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitGenerator = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitGenerator
-            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKDripAudioUnit
+            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
         }
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        intensityParameter               = tree.value(forKey: "intensity")               as? AUParameter
-        dampingFactorParameter           = tree.value(forKey: "dampingFactor")           as? AUParameter
-        energyReturnParameter            = tree.value(forKey: "energyReturn")            as? AUParameter
-        mainResonantFrequencyParameter   = tree.value(forKey: "mainResonantFrequency")   as? AUParameter
-        firstResonantFrequencyParameter  = tree.value(forKey: "firstResonantFrequency")  as? AUParameter
-        secondResonantFrequencyParameter = tree.value(forKey: "secondResonantFrequency") as? AUParameter
-        amplitudeParameter               = tree.value(forKey: "amplitude")               as? AUParameter
+        intensityParameter               = tree["intensity"]
+        dampingFactorParameter           = tree["dampingFactor"]
+        energyReturnParameter            = tree["energyReturn"]
+        mainResonantFrequencyParameter   = tree["mainResonantFrequency"]
+        firstResonantFrequencyParameter  = tree["firstResonantFrequency"]
+        secondResonantFrequencyParameter = tree["secondResonantFrequency"]
+        amplitudeParameter               = tree["amplitude"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

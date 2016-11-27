@@ -17,11 +17,13 @@ import AVFoundation
 ///   - detuningOffset: Frequency offset in Hz.
 ///   - detuningMultiplier: Frequency detuning multiplier
 ///
-open class AKPhaseDistortionOscillator: AKNode, AKToggleable {
+open class AKPhaseDistortionOscillator: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKPhaseDistortionOscillatorAudioUnit
+    static let ComponentDescription = AudioComponentDescription(generator: "phdo")
 
     // MARK: - Properties
 
-    internal var internalAU: AKPhaseDistortionOscillatorAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var waveform: AKTable?
@@ -145,42 +147,32 @@ open class AKPhaseDistortionOscillator: AKNode, AKToggleable {
         self.detuningOffset = detuningOffset
         self.detuningMultiplier = detuningMultiplier
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Generator
-        description.componentSubType      = fourCC("phdo")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKPhaseDistortionOscillatorAudioUnit.self,
-            as: description,
-            name: "Local AKPhaseDistortionOscillator",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitGenerator = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitGenerator
-            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKPhaseDistortionOscillatorAudioUnit
+            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
-            self.internalAU?.setupWaveform(Int32(waveform.size))
-            for i in 0 ..< waveform.size {
-                self.internalAU?.setWaveformValue(waveform.values[i], at: UInt32(i))
+            self.internalAU?.setupWaveform(Int32(waveform.count))
+            for (i, sample) in waveform.enumerated() {
+                self.internalAU?.setWaveformValue(sample, at: UInt32(i))
             }
+
         }
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        frequencyParameter          = tree.value(forKey: "frequency")          as? AUParameter
-        amplitudeParameter          = tree.value(forKey: "amplitude")          as? AUParameter
-        phaseDistortionParameter    = tree.value(forKey: "phaseDistortion")    as? AUParameter
-        detuningOffsetParameter     = tree.value(forKey: "detuningOffset")     as? AUParameter
-        detuningMultiplierParameter = tree.value(forKey: "detuningMultiplier") as? AUParameter
+        frequencyParameter          = tree["frequency"]
+        amplitudeParameter          = tree["amplitude"]
+        phaseDistortionParameter    = tree["phaseDistortion"]
+        detuningOffsetParameter     = tree["detuningOffset"]
+        detuningMultiplierParameter = tree["detuningMultiplier"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

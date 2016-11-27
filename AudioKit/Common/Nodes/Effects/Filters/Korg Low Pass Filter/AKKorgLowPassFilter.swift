@@ -15,11 +15,13 @@ import AVFoundation
 /// - parameter resonance: Filter resonance (should be between 0-2)
 /// - parameter saturation: Filter saturation.
 ///
-open class AKKorgLowPassFilter: AKNode, AKToggleable {
+open class AKKorgLowPassFilter: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKKorgLowPassFilterAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "klpf")
 
     // MARK: - Properties
 
-    internal var internalAU: AKKorgLowPassFilterAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var cutoffFrequencyParameter: AUParameter?
@@ -97,27 +99,16 @@ open class AKKorgLowPassFilter: AKNode, AKToggleable {
         self.resonance = resonance
         self.saturation = saturation
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("klpf")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKKorgLowPassFilterAudioUnit.self,
-            as: description,
-            name: "Local AKKorgLowPassFilter",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKKorgLowPassFilterAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -125,9 +116,9 @@ open class AKKorgLowPassFilter: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        cutoffFrequencyParameter = tree.value(forKey: "cutoffFrequency") as? AUParameter
-        resonanceParameter       = tree.value(forKey: "resonance")       as? AUParameter
-        saturationParameter      = tree.value(forKey: "saturation")      as? AUParameter
+        cutoffFrequencyParameter = tree["cutoffFrequency"]
+        resonanceParameter       = tree["resonance"]
+        saturationParameter      = tree["saturation"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

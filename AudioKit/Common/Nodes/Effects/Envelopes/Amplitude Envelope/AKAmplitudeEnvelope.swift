@@ -17,11 +17,13 @@ import AVFoundation
 ///   - sustainLevel: Sustain Level
 ///   - releaseDuration: Release time
 ///
-open class AKAmplitudeEnvelope: AKNode, AKToggleable {
+open class AKAmplitudeEnvelope: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKAmplitudeEnvelopeAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "adsr")
 
     // MARK: - Properties
 
-    internal var internalAU: AKAmplitudeEnvelopeAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var attackDurationParameter: AUParameter?
@@ -116,27 +118,15 @@ open class AKAmplitudeEnvelope: AKNode, AKToggleable {
         self.sustainLevel = sustainLevel
         self.releaseDuration = releaseDuration
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("adsr")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKAmplitudeEnvelopeAudioUnit.self,
-            as: description,
-            name: "Local AKAmplitudeEnvelope",
-            version: UInt32.max)
-
+        _Self.register()
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAmplitudeEnvelopeAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -144,10 +134,10 @@ open class AKAmplitudeEnvelope: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        attackDurationParameter  = tree.value(forKey: "attackDuration")  as? AUParameter
-        decayDurationParameter   = tree.value(forKey: "decayDuration")   as? AUParameter
-        sustainLevelParameter    = tree.value(forKey: "sustainLevel")    as? AUParameter
-        releaseDurationParameter = tree.value(forKey: "releaseDuration") as? AUParameter
+        attackDurationParameter  = tree["attackDuration"]
+        decayDurationParameter   = tree["decayDuration"]
+        sustainLevelParameter    = tree["sustainLevel"]
+        releaseDurationParameter = tree["releaseDuration"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

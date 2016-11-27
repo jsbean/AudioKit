@@ -18,11 +18,13 @@ import AVFoundation
 ///   - attackDuration: Impulse response attack time (in seconds).
 ///   - decayDuration: Impulse reponse decay time (in seconds)
 ///
-open class AKFormantFilter: AKNode, AKToggleable {
+open class AKFormantFilter: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKFormantFilterAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "fofi")
 
     // MARK: - Properties
 
-    internal var internalAU: AKFormantFilterAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var centerFrequencyParameter: AUParameter?
@@ -101,27 +103,16 @@ open class AKFormantFilter: AKNode, AKToggleable {
         self.attackDuration = attackDuration
         self.decayDuration = decayDuration
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("fofi")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKFormantFilterAudioUnit.self,
-            as: description,
-            name: "Local AKFormantFilter",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKFormantFilterAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -129,9 +120,9 @@ open class AKFormantFilter: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        centerFrequencyParameter = tree.value(forKey: "centerFrequency") as? AUParameter
-        attackDurationParameter  = tree.value(forKey: "attackDuration")  as? AUParameter
-        decayDurationParameter   = tree.value(forKey: "decayDuration")   as? AUParameter
+        centerFrequencyParameter = tree["centerFrequency"]
+        attackDurationParameter  = tree["attackDuration"]
+        decayDurationParameter   = tree["decayDuration"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

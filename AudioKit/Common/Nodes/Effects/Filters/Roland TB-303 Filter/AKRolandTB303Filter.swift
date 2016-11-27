@@ -17,11 +17,13 @@ import AVFoundation
 ///   - distortion: Distortion. Value is typically 2.0; deviation from this can cause stability issues.
 ///   - resonanceAsymmetry: Asymmetry of resonance. Value is between 0-1
 ///
-open class AKRolandTB303Filter: AKNode, AKToggleable {
+open class AKRolandTB303Filter: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKRolandTB303FilterAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "tb3f")
 
     // MARK: - Properties
 
-    internal var internalAU: AKRolandTB303FilterAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var cutoffFrequencyParameter: AUParameter?
@@ -116,27 +118,16 @@ open class AKRolandTB303Filter: AKNode, AKToggleable {
         self.distortion = distortion
         self.resonanceAsymmetry = resonanceAsymmetry
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("tb3f")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKRolandTB303FilterAudioUnit.self,
-            as: description,
-            name: "Local AKRolandTB303Filter",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKRolandTB303FilterAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -144,10 +135,10 @@ open class AKRolandTB303Filter: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        cutoffFrequencyParameter    = tree.value(forKey: "cutoffFrequency")    as? AUParameter
-        resonanceParameter          = tree.value(forKey: "resonance")          as? AUParameter
-        distortionParameter         = tree.value(forKey: "distortion")         as? AUParameter
-        resonanceAsymmetryParameter = tree.value(forKey: "resonanceAsymmetry") as? AUParameter
+        cutoffFrequencyParameter    = tree["cutoffFrequency"]
+        resonanceParameter          = tree["resonance"]
+        distortionParameter         = tree["distortion"]
+        resonanceAsymmetryParameter = tree["resonanceAsymmetry"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

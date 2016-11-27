@@ -1,10 +1,12 @@
-AudioKit V3.4
+AudioKit V3.5
 ===
 
 [![Build Status](https://travis-ci.org/audiokit/AudioKit.svg)](https://travis-ci.org/audiokit/AudioKit)
 [![License](https://img.shields.io/cocoapods/l/AudioKit.svg?style=flat)](https://github.com/audiokit/AudioKit/blob/master/LICENSE)
 [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 [![CocoaPods compatible](https://img.shields.io/cocoapods/v/AudioKit.svg?style=flat)](https://github.com/CocoaPods/Specs/tree/master/Specs/AudioKit)
+[![Platform](https://img.shields.io/cocoapods/p/AudioKit.svg?style=flat)](http://cocoadocs.org/docsets/AudioKit)
+<img src="https://img.shields.io/badge/%20in-swift%203.0-orange.svg">
 [![Twitter Follow](https://img.shields.io/twitter/follow/AudioKitMan.svg?style=social)](http://twitter.com/AudioKitMan)
 
 AudioKit is an audio synthesis, processing, and analysis platform for iOS, macOS, and tvOS. This document serves as a one-page introduction to AudioKit, but we have much more information available on the AudioKit website at http://audiokit.io/
@@ -112,14 +114,15 @@ github "audiokit/AudioKit"
 If you use CocoaPods, you can also easily get the latest AudioKit binary framework for your project. Use this in your `Podfile`:
 
 ```
-pod 'AudioKit', '~> 3.4'
+pod 'AudioKit', '~> 3.5'
 ```
 
 ## About Us
 
 AudioKit was created by the following team whose contributions are fully chronicled in Github, and summarized below in alphabetical order by first name:
 
-* **[Aurelius Prochazka](https://github.com/aure)**: Primary programmer of AudioKit. Lives for this stuff.  Your life line if you need help.
+* **[Adam Nemecek](https://github.com/adamnemecek)**: Lives by the motto "No code is better than no code" and tries to apply that to AudioKit.
+* **[Aurelius Prochazka](https://github.com/aure)**: Primary programmer of AudioKit. Lives for this stuff. Your life line if you need help.
 * **[Brandon Barber](https://github.com/roecrew/)**: Deep diver.  Contributed a lot of great pull requests.
 * **[Jeff Cooper](https://github.com/eljeff)**: Rearchitected all things MIDI, sampler, and sequencer related in AudioKit 3.
 * **[Laurent Veliscek](https://github.com/laurentVeliscek/)**: Master of the AKAudioFile, AKAudioPlayer, and recording nodes.

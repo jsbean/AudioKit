@@ -14,11 +14,13 @@ import AVFoundation
 ///   - detune:   Detuning of second string in the course (1=Unison (deault), 2=Octave)
 ///   - bodySize: Relative size of the mandoline (Default: 1, ranges ~ 0.5 - 2)
 ///
-open class AKMandolin: AKNode {
+open class AKMandolin: AKNode, AKComponent {
+    public typealias AKAudioUnitType = AKMandolinAudioUnit
+    static let ComponentDescription = AudioComponentDescription(generator: "mand")
 
     // MARK: - Properties
 
-    internal var internalAU: AKMandolinAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var detuneParameter: AUParameter?
@@ -81,35 +83,24 @@ open class AKMandolin: AKNode {
         self.detune = detune
         self.bodySize = bodySize
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Generator
-        description.componentSubType      = fourCC("mand")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKMandolinAudioUnit.self,
-            as: description,
-            name: "Local AKMandolin",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitGenerator = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitGenerator
-            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKMandolinAudioUnit
+            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
         }
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        detuneParameter   = tree.value(forKey: "detune")   as? AUParameter
-        bodySizeParameter = tree.value(forKey: "bodySize") as? AUParameter
+        detuneParameter   = tree["detune"]
+        bodySizeParameter = tree["bodySize"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

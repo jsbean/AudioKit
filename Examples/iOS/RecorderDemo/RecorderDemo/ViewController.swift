@@ -43,7 +43,7 @@ class ViewController: UIViewController {
         AKSettings.bufferLength = .medium
         
         do {
-            try AKSettings.setSession(category: .playAndRecord)
+            try AKSettings.setSession(category: .playAndRecord, with: .defaultToSpeaker)
         } catch { print("Errored setting category.") }
         
         // Patching
@@ -54,8 +54,7 @@ class ViewController: UIViewController {
         // Will set the level of microphone monitoring
         micBooster!.gain = 0
         recorder = try? AKNodeRecorder(node: micMixer)
-        tape = recorder?.audioFile
-        player = tape?.player
+        player = try? AKAudioPlayer(file: (recorder?.audioFile)!)
         player?.looping = true
         player?.completionHandler = playingEnded
         
@@ -104,6 +103,13 @@ class ViewController: UIViewController {
             let recordedDuration = player != nil ? player?.audioFile.duration  : 0
             if recordedDuration! > 0.0 {
                 recorder?.stop()
+                player?.audioFile.exportAsynchronously(name: "TempTestFile.m4a", baseDir: .documents, exportFormat: .m4a) {_, error in
+                    if error != nil {
+                        print("Export Failed \(error)")
+                    } else {
+                        print("Export succeeded")
+                    }
+                }
                 setupUIForPlaying ()
             }
         case .readyToPlay :
@@ -113,7 +119,7 @@ class ViewController: UIViewController {
             state = .playing
         case .playing :
             player?.stop()
-            setupUIForPlaying ()
+            setupUIForPlaying()
         }
     }
     
@@ -154,7 +160,7 @@ class ViewController: UIViewController {
         moogLadderTitle.isEnabled = active
         frequencySlider.callback = updateFrequency
         frequencySlider.isHidden = !active
-        resonanceSlider.callback = updateReson
+        resonanceSlider.callback = updateResonance
         resonanceSlider.isHidden = !active
         frequencySlider.maximum = 2000
         moogLadderTitle.text = active ? "Moog Ladder Filter" : Constants.empty
@@ -181,23 +187,14 @@ class ViewController: UIViewController {
         //try? player?.replaceFile((recorder?.audioFile)!)
         setupUIForRecording()
     }
-    /*
-     @IBAction func resonSliderChanged(sender: UISlider) {
-     moogLadder?.resonance = Double(sender.value)
-     resonLabel!.text = "Resonance: \(String(format: "%0.3f", moogLadder!.resonance))"
-     }
-     @IBAction func freqSliderChanged(sender: UISlider) {
-     moogLadder?.cutoffFrequency = Double(sender.value)
-     freqLabel!.text = "Cutoff Frequency: \(String(format: "%0.0f", moogLadder!.cutoffFrequency))"
-     }
-     */
+
     func updateFrequency(value: Double) {
         moogLadder!.cutoffFrequency = value
         frequencySlider.property = "Frequency"
         frequencySlider.format = "%0.0f"
     }
     
-    func updateReson(value: Double) {
+    func updateResonance(value: Double) {
         moogLadder?.resonance = value
         resonanceSlider.property = "Resonance"
         resonanceSlider.format = "%0.3f"

@@ -16,11 +16,13 @@ import AVFoundation
 ///   - gain: Amount at which the corner frequency value shall be increased or decreased. A value of 1 is a flat response.
 ///   - q: Q of the filter. sqrt(0.5) is no resonance.
 ///
-open class AKLowShelfParametricEqualizerFilter: AKNode, AKToggleable {
+open class AKLowShelfParametricEqualizerFilter: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKLowShelfParametricEqualizerFilterAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "peq1")
 
     // MARK: - Properties
 
-    internal var internalAU: AKLowShelfParametricEqualizerFilterAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var cornerFrequencyParameter: AUParameter?
@@ -99,27 +101,16 @@ open class AKLowShelfParametricEqualizerFilter: AKNode, AKToggleable {
         self.gain = gain
         self.q = q
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("peq1")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKLowShelfParametricEqualizerFilterAudioUnit.self,
-            as: description,
-            name: "Local AKLowShelfParametricEqualizerFilter",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKLowShelfParametricEqualizerFilterAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -127,9 +118,9 @@ open class AKLowShelfParametricEqualizerFilter: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        cornerFrequencyParameter = tree.value(forKey: "cornerFrequency") as? AUParameter
-        gainParameter            = tree.value(forKey: "gain")            as? AUParameter
-        qParameter               = tree.value(forKey: "q")               as? AUParameter
+        cornerFrequencyParameter = tree["cornerFrequency"]
+        gainParameter            = tree["gain"]
+        qParameter               = tree["q"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

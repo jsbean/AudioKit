@@ -19,6 +19,7 @@ open class AKAudioFile: AVAudioFile {
     /// - Temp:      Temp Directory
     /// - Documents: Documents Directory
     /// - Resources: Resources Directory (Shouldn't be used for writing / recording files)
+    /// - Custom: The same directory as the input file. This is mainly for OS X projects.
     ///
     public enum BaseDirectory {
         /// Temporary directory
@@ -29,6 +30,9 @@ open class AKAudioFile: AVAudioFile {
         
         /// Resources directory
         case resources
+        
+        /// Same directory as the input file
+        case custom
     }
     
     // MARK: - private vars
@@ -241,8 +245,8 @@ open class AKAudioFile: AVAudioFile {
     /// - returns: An initialized AKAudioFile object for reading, or nil if init failed.
     ///
     public override init(forReading fileURL: URL,
-                                    commonFormat format: AVAudioCommonFormat,
-                                                 interleaved: Bool) throws {
+                         commonFormat format: AVAudioCommonFormat,
+                         interleaved: Bool) throws {
         
         try super.init(forReading: fileURL, commonFormat: format, interleaved: interleaved)
     }
@@ -268,9 +272,9 @@ open class AKAudioFile: AVAudioFile {
     /// - returns: An initialized AKAudioFile for writing, or nil if init failed.
     ///
     public override init(forWriting fileURL: URL,
-                                    settings: [String : Any],
-                                    commonFormat format: AVAudioCommonFormat,
-                                                 interleaved: Bool) throws {
+                         settings: [String : Any],
+                         commonFormat format: AVAudioCommonFormat,
+                         interleaved: Bool) throws {
         try super.init(forWriting: fileURL,
                        settings: settings,
                        commonFormat: format,

@@ -12,11 +12,13 @@ import AVFoundation
 ///
 /// - parameter amplitude: Amplitude. (Value between 0-1).
 ///
-open class AKWhiteNoise: AKNode, AKToggleable {
+open class AKWhiteNoise: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKWhiteNoiseAudioUnit
+    static let ComponentDescription = AudioComponentDescription(generator: "wnoz")
 
     // MARK: - Properties
 
-    internal var internalAU: AKWhiteNoiseAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
 
@@ -55,37 +57,25 @@ open class AKWhiteNoise: AKNode, AKToggleable {
     public init(
         amplitude: Double = 1) {
 
-
         self.amplitude = amplitude
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Generator
-        description.componentSubType      = fourCC("wnoz")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKWhiteNoiseAudioUnit.self,
-            as: description,
-            name: "Local AKWhiteNoise",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitGenerator = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitGenerator
-            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKWhiteNoiseAudioUnit
+            self.internalAU = avAudioUnitGenerator.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
         }
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        amplitudeParameter = tree.value(forKey: "amplitude") as? AUParameter
+        amplitudeParameter = tree["amplitude"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in

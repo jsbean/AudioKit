@@ -15,11 +15,13 @@ import AVFoundation
 /// - parameter frequency: Center frequency of the filter, or frequency position of the peak response.
 /// - parameter bandwidth: Bandwidth of the filter.
 ///
-open class AKResonantFilter: AKNode, AKToggleable {
+open class AKResonantFilter: AKNode, AKToggleable, AKComponent {
+    public typealias AKAudioUnitType = AKResonantFilterAudioUnit
+    static let ComponentDescription = AudioComponentDescription(effect: "resn")
 
     // MARK: - Properties
 
-    internal var internalAU: AKResonantFilterAudioUnit?
+    internal var internalAU: AKAudioUnitType?
     internal var token: AUParameterObserverToken?
 
     fileprivate var frequencyParameter: AUParameter?
@@ -81,27 +83,16 @@ open class AKResonantFilter: AKNode, AKToggleable {
         self.frequency = frequency
         self.bandwidth = bandwidth
 
-        var description = AudioComponentDescription()
-        description.componentType         = kAudioUnitType_Effect
-        description.componentSubType      = fourCC("resn")
-        description.componentManufacturer = fourCC("AuKt")
-        description.componentFlags        = 0
-        description.componentFlagsMask    = 0
-
-        AUAudioUnit.registerSubclass(
-            AKResonantFilterAudioUnit.self,
-            as: description,
-            name: "Local AKResonantFilter",
-            version: UInt32.max)
+        _Self.register()
 
         super.init()
-        AVAudioUnit.instantiate(with: description, options: []) {
+        AVAudioUnit.instantiate(with: _Self.ComponentDescription, options: []) {
             avAudioUnit, error in
 
             guard let avAudioUnitEffect = avAudioUnit else { return }
 
             self.avAudioNode = avAudioUnitEffect
-            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKResonantFilterAudioUnit
+            self.internalAU = avAudioUnitEffect.auAudioUnit as? AKAudioUnitType
 
             AudioKit.engine.attach(self.avAudioNode)
             input.addConnectionPoint(self)
@@ -109,8 +100,8 @@ open class AKResonantFilter: AKNode, AKToggleable {
 
         guard let tree = internalAU?.parameterTree else { return }
 
-        frequencyParameter = tree.value(forKey: "frequency") as? AUParameter
-        bandwidthParameter = tree.value(forKey: "bandwidth") as? AUParameter
+        frequencyParameter = tree["frequency"]
+        bandwidthParameter = tree["bandwidth"]
 
         token = tree.token (byAddingParameterObserver: {
             address, value in
