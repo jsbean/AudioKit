@@ -1,6 +1,6 @@
 //: ## Oscillator Synth
 //:
-import PlaygroundSupport
+
 import AudioKit
 
 //: Choose the waveform shape here
@@ -9,7 +9,7 @@ let waveform = AKTable(.sawtooth) // .triangle, etc.
 
 var oscillator = AKOscillator(waveform: waveform)
 
-var currentMIDINote = 0
+var currentMIDINote: MIDINoteNumber = 0
 var currentAmplitude = 0.1
 var currentRampTime = 0.0
 
@@ -30,7 +30,7 @@ class PlaygroundView: AKPlaygroundView, AKKeyboardDelegate {
             color: AKColor.purple
         ) { amplitude in
             currentAmplitude = amplitude
-            })
+        })
 
         addSubview(AKPropertySlider(
             property: "Ramp Time",
@@ -39,7 +39,7 @@ class PlaygroundView: AKPlaygroundView, AKKeyboardDelegate {
             color: AKColor.orange
         ) { time in
             currentRampTime = time
-            })
+        })
 
         let keyboard = AKKeyboardView(width: playgroundWidth - 60,
                                 height: 100, firstOctave: 3, octaveCount: 3)
@@ -68,5 +68,6 @@ class PlaygroundView: AKPlaygroundView, AKKeyboardDelegate {
     }
 }
 
+import PlaygroundSupport
 PlaygroundPage.current.needsIndefiniteExecution = true
 PlaygroundPage.current.liveView = PlaygroundView()

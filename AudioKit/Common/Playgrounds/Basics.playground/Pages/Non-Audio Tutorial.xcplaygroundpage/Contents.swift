@@ -10,20 +10,22 @@
 //: You will always see the `import AudioKit` line which brings in all of
 //: AudioKit's functionality to the playground.
 import AudioKit
-//: ALERT: This is also the line that most commonly shows an error "No such module: AudioKit"
-//: This can be because you haven't built the framework yet, in which case pressing Cmd-B or
-//: accessing the "Product" menu and choosing "Build".  If the playgrounds still show an
-//: error, show the Utilities panel with the icon on the upper right of the window, or
+//: ALERT: This is also the line that most commonly shows an error "No such module: AudioKit."
+//: There are a few potential causes for this which are outlined below.
+//:
+//: 1. Perhaps, you haven't built the framework yet, in which case pressing Cmd-B or
+//: accessing the "Product" menu and choosing "Build".  
+//:
+//: 2. Make sure you are building for a simulator and not an actual device.
+//:
+//: 3. Show the Utilities panel with the icon on the upper right of the window, or
 //: by accessing View menu, Utilities > Show File Inspector, or pressing Cmd-option-1.
 //: From the panel, make sure the "Playground Settings" Platform pull-down menu matches
-//: the operating system you're currently building for.  If that still doesn't work (sigh)
-//: you may need to clean out your build products directory to make sure that no other
-//: versions of AudioKit exist for any OS.
+//: the operating system you're currently building for.  
 //:
-//: Another import line you will see in most playgrounds enables `XCPlayground` functions
-//: for plotting, keeping the playground alive while audio plays, and more.
-import PlaygroundSupport
-
+//: 4. If it still doesn't work (sigh) you may need to clean out your build products
+//: directory to make sure that no other versions of AudioKit exist for any OS.
+//:
 //: This main bundle line just helps the playground find the files (such as audio clips)
 //: it will be able to play and process.
 let bundle = Bundle.main
@@ -49,17 +51,10 @@ let file = try AKAudioFile(readFileName: "mixloop.wav", baseDir: .resources)
 let player = try AKAudioPlayer(file: file)
 let effect = AKMoogLadder(player)
 
-//: We'll often use the notation above which is `let variable = AKClass(input)`
-//: but for the best code completion, this is equivalent to
-//: `let variable = AKClass.init(input)` which has the added benefit of providing
-//: better code completion and inline documentation.  This may not be necessary
-//: as Xcode's support for Swift code completion improves.
-let effect2 = AKMoogLadder.init(player)
-
-//: Remember the `import PlaygroundSupport` line above?  Here's one way that is used.
 //: The following line keeps a playground executing even after the last line is
 //: run so that the audio elements that were started have time to play and make
 //: sounds for us to listen to.
+import PlaygroundSupport
 PlaygroundPage.current.needsIndefiniteExecution = true
 //: The other ways we'll keep playgrounds running will by using `sleep` and `usleep`
 //: functions and infinite while loops.
